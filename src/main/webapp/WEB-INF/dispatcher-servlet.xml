@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-3.2.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.2.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.3.xsd"> 
+		<!-- 消息转换器  防止controlller返回前端乱码 -->
+		<bean class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter">
+			<property name="messageConverters">
+				<list>
+				<bean class="org.springframework.http.converter.StringHttpMessageConverter">
+					<property name="supportedMediaTypes">
+						<list>
+							<value>text/html;charset=UTF-8</value>
+						</list>
+					</property>			
+				</bean>		
+				</list>
+			</property>
+		</bean>
+		<!-- 添加注解驱动 -->
+		<mvc:annotation-driven></mvc:annotation-driven>
+		
+		<context:component-scan base-package="cn.gc.*"></context:component-scan>
+		<!-- mvc:view-controller可以在不需要Controller处理request的情况，转向到设置的View页面 -->
+		<!-- 向下面这样的配置，如果请求为/，则不通过controller  而直接解析为/index.jsp -->
+		<mvc:view-controller path="/" view-name="index"/>
+		<bean class="org.springframework.web.servlet.view.UrlBasedViewResolver">
+			<property name="viewClass" value="org.springframework.web.servlet.view.JstlView"/>
+			<property name="prefix" value="/"></property>
+			<property name="suffix" value=".jsp"></property>
+		</bean>
+		<!-- spring集成quartz -->
+		<!-- 创建jobDetail -->
+		<bean id="firstComplexJobDetail" class="org.springframework.scheduling.quartz.JobDetailFactoryBean">
+			<!-- 我们自定义的job -->
+			<property name="jobClass"  value="cn.gc.jobdetail.FirstScheduledJob"/>
+			<!-- 自定义job中传入的自定义参数 -->
+			<property name="jobDataMap">
+				<map>
+					<entry key="anotherBean" value-ref="anotherBean"></entry>
+				</map>
+			</property>
+			<property name="durability" value="true"></property>
+		</bean>
+		<!-- 创建tragger 定义没5秒钟执行一次 -->
+		<bean id="myTragger" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+			<property name="jobDetail" ref="firstComplexJobDetail"></property>
+			<property name="cronExpression" value="0/5 * * ? * *"></property>
+		</bean>
+		<bean id="myScheduled" class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+			<property name="jobDetails">
+				<list>
+					<ref bean="firstComplexJobDetail"/>
+				</list>
+			</property>
+			<property name="triggers">
+				<list>
+					<ref bean="myTragger"/>
+				</list>
+			</property>
+		</bean>
+</beans>
